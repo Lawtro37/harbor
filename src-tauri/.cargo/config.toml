@@ -1,0 +1,6 @@
+[target.aarch64-linux-android]
+linker = "C:/Users/Lawton/AppData/Local/Android/Sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe"
+
+rustflags = [
+    "-C", "link-arg=--target=aarch64-linux-android24",
+]
