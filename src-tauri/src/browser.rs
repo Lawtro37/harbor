@@ -65,6 +65,7 @@ pub async fn browser_open(app: AppHandle, url: String) -> Result<(), String> {
             "window.location.href = {};",
             serde_json::to_string(&url).unwrap_or_else(|_| "''".to_string())
         ));
+        #[cfg(desktop)]
         let _ = existing.set_focus();
         return Ok(());
     }
@@ -98,17 +99,25 @@ pub async fn browser_open(app: AppHandle, url: String) -> Result<(), String> {
             "[browser] building {} at ({:.0}, {:.0}) size {:.0}x{:.0}",
             BROWSER_LABEL, target_x, target_y, target_w, target_h
         );
-        #[allow(unused_mut)]
-        let mut builder =
-            WebviewWindowBuilder::new(&app_for_main, BROWSER_LABEL, WebviewUrl::External(parsed))
-                .title("Harbor Browser")
-                .inner_size(target_w, target_h)
-                .position(target_x, target_y)
-                .resizable(true)
-                .decorations(true)
-                .shadow(true)
-                .focused(true)
-                .initialization_script(&init_script);
+        #[allow(unused_mut)] 
+        {
+          #[cfg(not(target_os = "android"))]
+          let builder =
+              WebviewWindowBuilder::new(&app_for_main, BROWSER_LABEL, WebviewUrl::External(parsed))
+                  .title("Harbor Browser")
+                  .inner_size(target_w, target_h)
+                  .position(target_x, target_y)
+                  .resizable(true)
+                  .decorations(true)
+                  .shadow(true)
+                  .focused(true)
+                  .initialization_script(&init_script);
+
+          #[cfg(target_os = "android")]
+          let builder =
+              WebviewWindowBuilder::new(&app_for_main, BROWSER_LABEL, WebviewUrl::External(parsed))
+                  .initialization_script(&init_script);
+        }
 
         #[cfg(target_os = "linux")]
         {

@@ -392,6 +392,7 @@ pub fn run() {
     let dvr_state = dvr::DvrState::new();
     let multiview_state = multiview::MultiviewState::new();
     let modal_overlay_state = modal_overlay::ModalOverlayState::new();
+    #[cfg(desktop)]
     let app_builder = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             use tauri::{Emitter, Manager};
@@ -421,6 +422,27 @@ pub fn run() {
                 )
                 .build(),
         )
+        .manage(proxy_state)
+        .manage(mpv_state)
+        .manage(pip_state)
+        .manage(fullscreen_state)
+        .manage(thumbs_state)
+        .manage(dvr_state)
+        .manage(multiview_state)
+        .manage(modal_overlay_state)
+        .manage(discord_rp::DiscordState::new())
+        .manage(download::DownloadState::new());
+
+    #[cfg(not(desktop))]
+    let app_builder = tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_http::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(proxy_state)
         .manage(mpv_state)
         .manage(pip_state)
