@@ -44,72 +44,96 @@ fn main_rect(app: &AppHandle) -> Result<((f64, f64), (f64, f64)), String> {
 
 #[tauri::command]
 pub async fn hdr_overlay_open(app: AppHandle) -> Result<(), String> {
-    if app.get_webview_window(HDR_OVERLAY_LABEL).is_some() {
-        return hdr_overlay_sync(app).await;
-    }
-    let ((px, py), (sw, sh)) = main_rect(&app)?;
-    let app_clone = app.clone();
-    let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
-    app.run_on_main_thread(move || {
-        let url = WebviewUrl::App("index.html?harbor-overlay=1".into());
-        let builder = WebviewWindowBuilder::new(&app_clone, HDR_OVERLAY_LABEL, url)
-            .title("Harbor HDR")
-            .inner_size(sw, sh)
-            .position(px, py)
-            .resizable(false)
-            .always_on_top(true)
-            .decorations(false)
-            .skip_taskbar(true)
-            .shadow(false)
-            .visible(true)
-            .focused(false);
-        #[cfg(windows)]
-        let builder = builder.transparent(true);
-        let result = builder.build();
-        match result {
-            Ok(_) => {
-                let _ = tx.send(Ok(()));
-            }
-            Err(e) => {
-                let _ = tx.send(Err(e.to_string()));
-            }
+    #[cfg(not(target_os = "android"))]
+    {
+        if app.get_webview_window(HDR_OVERLAY_LABEL).is_some() {
+            return hdr_overlay_sync(app).await;
         }
-    })
-    .map_err(|e| format!("run_on_main_thread: {}", e))?;
-
-    match rx.recv() {
-        Ok(Ok(())) => {
+        let ((px, py), (sw, sh)) = main_rect(&app)?;
+        let app_clone = app.clone();
+        let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
+        app.run_on_main_thread(move || {
+            let url = WebviewUrl::App("index.html?harbor-overlay=1".into());
+            let mut builder = WebviewWindowBuilder::new(&app_clone, HDR_OVERLAY_LABEL, url)
+                .title("Harbor HDR")
+                .inner_size(sw, sh)
+                .position(px, py)
+                .resizable(false)
+                .always_on_top(true)
+                .decorations(false)
+                .skip_taskbar(true)
+                .shadow(false)
+                .visible(true)
+                .focused(false);
             #[cfg(windows)]
-            {
-                set_no_activate(&app);
-                crate::webview_helpers::apply_transparency(&app, HDR_OVERLAY_LABEL);
+            builder = builder.transparent(true);
+            let result = builder.build();
+            match result {
+                Ok(_) => {
+                    let _ = tx.send(Ok(()));
+                }
+                Err(e) => {
+                    let _ = tx.send(Err(e.to_string()));
+                }
             }
-            Ok(())
+        })
+        .map_err(|e| format!("run_on_main_thread: {}", e))?;
+
+        match rx.recv() {
+            Ok(Ok(())) => {
+                #[cfg(windows)]
+                {
+                    set_no_activate(&app);
+                    crate::webview_helpers::apply_transparency(&app, HDR_OVERLAY_LABEL);
+                }
+                return Ok(());
+            }
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("channel: {}", e)),
         }
-        Ok(Err(e)) => Err(e),
-        Err(e) => Err(format!("channel: {}", e)),
+    }
+
+    // Android: no overlay windows; no-op
+    #[cfg(target_os = "android")]
+    {
+        let _ = app;
+        Ok(())
     }
 }
 
 #[tauri::command]
 pub async fn hdr_overlay_close(app: AppHandle) -> Result<(), String> {
-    if let Some(w) = app.get_webview_window(HDR_OVERLAY_LABEL) {
-        let _ = w.close();
+    #[cfg(not(target_os = "android"))]
+    {
+        if let Some(w) = app.get_webview_window(HDR_OVERLAY_LABEL) {
+            let _ = w.close();
+        }
+    }
+    #[cfg(target_os = "android")]
+    {
+        let _ = app;
     }
     Ok(())
 }
 
 #[tauri::command]
 pub async fn hdr_overlay_sync(app: AppHandle) -> Result<(), String> {
-    let overlay = match app.get_webview_window(HDR_OVERLAY_LABEL) {
-        Some(w) => w,
-        None => return Ok(()),
-    };
-    let ((px, py), (sw, sh)) = main_rect(&app)?;
-    let _ = overlay.set_position(LogicalPosition::new(px, py));
-    let _ = overlay.set_size(LogicalSize::new(sw, sh));
-    #[cfg(windows)]
-    crate::webview_helpers::apply_transparency(&app, HDR_OVERLAY_LABEL);
+    #[cfg(not(target_os = "android"))]
+    {
+        let overlay = match app.get_webview_window(HDR_OVERLAY_LABEL) {
+            Some(w) => w,
+            None => return Ok(()),
+        };
+        let ((px, py), (sw, sh)) = main_rect(&app)?;
+        let _ = overlay.set_position(LogicalPosition::new(px, py));
+        let _ = overlay.set_size(LogicalSize::new(sw, sh));
+        #[cfg(windows)]
+        crate::webview_helpers::apply_transparency(&app, HDR_OVERLAY_LABEL);
+    }
+    #[cfg(target_os = "android")]
+    {
+        let _ = app;
+    }
     Ok(())
 }
 

@@ -34,7 +34,7 @@ flate2 = "1"
 uuid = { version = "1", features = ["v4"] }
 futures-util = "0.3"
 libmpv2 = "4"
-libmpv2-sys = "4"
+libmpv2-sys = { version = "4.0.1", features = ["use-bindgen"] }
 libc = "0.2"
 base64 = "0.22"
 png = "0.17"

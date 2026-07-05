@@ -12,7 +12,9 @@
     "tauri:build:linux-system": "tauri build --config src-tauri/tauri.linux-system.conf.json",
     "setup:libmpv": "node scripts/fetch-libmpv.mjs",
     "setup:ffmpeg": "node scripts/fetch-ffmpeg.mjs",
-    "setup:fonts": "node scripts/fetch-fonts.mjs"
+    "setup:fonts": "node scripts/fetch-fonts.mjs",
+    "tauri:build:android": "powershell -ExecutionPolicy Bypass -File src-tauri/build-android.ps1",
+    "build:android": "tsc -b && vite build && powershell -ExecutionPolicy Bypass -File src-tauri/build-android.ps1"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

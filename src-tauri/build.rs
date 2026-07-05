@@ -93,6 +93,25 @@ fn main() {
         println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN/../lib");
     }
 
+    if target_os == "android" {
+        // Read the target architecture triple Cargo is currently building for
+        let target_triple = std::env::var("TARGET").unwrap_or_default();
+
+        if target_triple.contains("armv7") {
+            // Force 32-bit ARM TV build to use the armeabi-v7a library path
+            let dir = manifest.join("android/armeabi-v7a");
+            println!("cargo:rustc-link-search=native={}", dir.display());
+        } else if target_triple.contains("aarch64") {
+            // Fallback configuration for modern 64-bit platforms
+            let dir = manifest.join("android/arm64-v8a");
+            println!("cargo:rustc-link-search=native={}", dir.display());
+        }
+
+        println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN");
+        println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN/lib");
+        println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN/../lib");
+    }
+
     let _ = manifest;
     tauri_build::build()
 }

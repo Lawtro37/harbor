@@ -60,7 +60,8 @@ impl PipState {
         }
     }
 }
-
+// Desktop implementation
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn pip_open(
     app: AppHandle,
@@ -131,12 +132,14 @@ pub async fn pip_open(
     }
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn pip_get_session(state: State<'_, PipState>) -> Result<Option<PipSession>, String> {
     let g = state.session.lock().await;
     Ok(g.clone())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn pip_close(
     app: AppHandle,
@@ -165,12 +168,14 @@ pub async fn pip_close(
     Ok(())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn pip_publish_state(app: AppHandle, exit: PipExitState) -> Result<(), String> {
     let _ = app.emit_to("main", "pip://state", exit);
     Ok(())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn window_pip_enter(
     app: AppHandle,
@@ -268,6 +273,7 @@ pub async fn window_pip_enter(
     Ok(())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn window_pip_exit(
     app: AppHandle,
@@ -324,5 +330,63 @@ pub async fn window_pip_exit(
     }
 
     let _ = app.emit_to("main", "pip://exited", ());
+    Ok(())
+}
+
+// Android stubs: keep state struct but no desktop window operations
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn pip_open(
+    _app: AppHandle,
+    state: State<'_, PipState>,
+    session: PipSession,
+) -> Result<(), String> {
+    {
+        let mut g = state.session.lock().await;
+        *g = Some(session);
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn pip_get_session(state: State<'_, PipState>) -> Result<Option<PipSession>, String> {
+    let g = state.session.lock().await;
+    Ok(g.clone())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn pip_close(
+    _app: AppHandle,
+    state: State<'_, PipState>,
+    exit: Option<PipExitState>,
+) -> Result<(), String> {
+    {
+        let mut g = state.session.lock().await;
+        *g = None;
+    }
+    if let Some(e) = exit {
+        let _ = (); // emit not available on android here
+        let _ = e;
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn pip_publish_state(_app: AppHandle, _exit: PipExitState) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn window_pip_enter(_app: AppHandle, _state: State<'_, PipState>) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn window_pip_exit(_app: AppHandle, _state: State<'_, PipState>) -> Result<(), String> {
     Ok(())
 }

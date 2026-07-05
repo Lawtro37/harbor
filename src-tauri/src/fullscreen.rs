@@ -12,7 +12,7 @@ impl FullscreenState {
         }
     }
 }
-
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn window_fullscreen_enter(
     app: AppHandle,
@@ -38,6 +38,7 @@ pub async fn window_fullscreen_enter(
     Ok(())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn window_fullscreen_exit(
     app: AppHandle,
@@ -58,5 +59,24 @@ pub async fn window_fullscreen_exit(
         let _ = main.set_focus();
     }
     let _ = app.emit_to("main", "fs://exited", ());
+    Ok(())
+}
+
+// Android: no-op implementations
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn window_fullscreen_enter(
+    _app: AppHandle,
+    _state: State<'_, FullscreenState>,
+) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn window_fullscreen_exit(
+    _app: AppHandle,
+    _state: State<'_, FullscreenState>,
+) -> Result<(), String> {
     Ok(())
 }

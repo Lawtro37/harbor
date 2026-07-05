@@ -105,12 +105,17 @@ fn harbor_flush_done() {
 
 #[tauri::command]
 fn close_aux_windows(app: tauri::AppHandle) {
-    use tauri::Manager;
-    for (label, window) in app.webview_windows() {
-        if label != "main" {
-            let _ = window.close();
+    // Desktop: close auxiliary webview windows
+    #[cfg(not(target_os = "android"))]
+    {
+        use tauri::Manager;
+        for (label, window) in app.webview_windows() {
+            if label != "main" {
+                let _ = window.close();
+            }
         }
     }
+    // Android: nothing to do
 }
 
 #[tauri::command]
@@ -332,6 +337,7 @@ fn harbor_resume_webview(app: tauri::AppHandle) {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 fn ensure_window_on_screen(app: &tauri::AppHandle) {
     use tauri::Manager;
     let Some(window) = app.get_webview_window("main") else {
@@ -372,6 +378,11 @@ fn ensure_window_on_screen(app: &tauri::AppHandle) {
     let cy = mp.y + (ms.height as i32 - wh).max(0) / 2;
     let _ = window.set_position(tauri::PhysicalPosition::new(cx, cy));
     eprintln!("[harbor::window] launched off-screen; recentered to {},{}", cx, cy);
+}
+
+#[cfg(target_os = "android")]
+fn ensure_window_on_screen(_: &tauri::AppHandle) {
+    // no-op on Android
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -466,7 +477,7 @@ pub fn run() {
             .unwrap()
     });
 
-    app_builder
+    let app_builder = app_builder
         .setup(move |app| {
             #[cfg(any(windows, target_os = "linux"))]
             {
@@ -516,54 +527,83 @@ pub fn run() {
                 eprintln!("[harbor::tray] build failed: {:?}", e);
             }
             Ok(())
-        })
-        .on_window_event(|window, event| {
-            if window.label() != "main" {
-                return;
-            }
-            use tauri::Manager;
-            match event {
-                tauri::WindowEvent::CloseRequested { api, .. } => {
-                    if tray::close_to_tray() {
-                        api.prevent_close();
-                        let _ = window.hide();
-                    } else if !CLOSE_IN_PROGRESS.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                        use tauri::Emitter;
-                        api.prevent_close();
-                        CLOSE_FLUSH_DONE.store(false, std::sync::atomic::Ordering::SeqCst);
-                        let _ = window.emit("harbor://app-closing", ());
-                        let w = window.clone();
-                        std::thread::spawn(move || {
-                            for _ in 0..24 {
-                                if CLOSE_FLUSH_DONE.load(std::sync::atomic::Ordering::SeqCst) {
-                                    break;
-                                }
-                                std::thread::sleep(std::time::Duration::from_millis(50));
-                            }
-                            let _ = w.destroy();
-                        });
-                    }
-                }
-                tauri::WindowEvent::Focused(focused) => {
+        });
+        
+    #[cfg(not(target_os = "android"))]
+    let app_builder = app_builder.on_window_event(|window, event| {
+        if window.label() != "main" {
+            return;
+        }
+
+        use tauri::Manager;
+
+        match event {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                if tray::close_to_tray() {
+                    api.prevent_close();
+                    let _ = window.hide();
+                } else if !CLOSE_IN_PROGRESS.swap(
+                    true,
+                    std::sync::atomic::Ordering::SeqCst,
+                ) {
                     use tauri::Emitter;
-                    let minimized = if *focused {
-                        false
-                    } else {
-                        window.is_minimized().unwrap_or(false)
-                            || !window.is_visible().unwrap_or(true)
-                    };
-                    let _ = window.emit(
-                        "harbor://window-activity",
-                        serde_json::json!({ "focused": *focused, "minimized": minimized }),
+
+                    api.prevent_close();
+                    CLOSE_FLUSH_DONE.store(
+                        false,
+                        std::sync::atomic::Ordering::SeqCst,
                     );
+
+                    let _ = window.emit("harbor://app-closing", ());
+                    let w = window.clone();
+
+                    std::thread::spawn(move || {
+                        for _ in 0..24 {
+                            if CLOSE_FLUSH_DONE.load(
+                                std::sync::atomic::Ordering::SeqCst,
+                            ) {
+                                break;
+                            }
+
+                            std::thread::sleep(std::time::Duration::from_millis(50));
+                        }
+
+                        let _ = w.close();
+                    });
                 }
-                tauri::WindowEvent::Destroyed => {
-                    shutdown_services(window.app_handle());
-                }
-                _ => {}
             }
-        })
-        .invoke_handler(tauri::generate_handler![
+
+            tauri::WindowEvent::Focused(focused) => {
+                use tauri::Emitter;
+
+                let minimized = if *focused {
+                    false
+                } else {
+                    window.is_minimized().unwrap_or(false)
+                        || !window.is_visible().unwrap_or(true)
+                };
+
+                let _ = window.emit(
+                    "harbor://window-activity",
+                    serde_json::json!({
+                        "focused": *focused,
+                        "minimized": minimized
+                    }),
+                );
+            }
+
+            tauri::WindowEvent::Destroyed => {
+                shutdown_services(window.app_handle());
+            }
+
+            _ => {}
+        }
+    });
+
+    #[cfg(target_os = "android")]
+    let app_builder = app_builder;
+
+    app_builder.invoke_handler(tauri::generate_handler![
             harbor_flush_done,
             close_aux_windows,
             power::power_inhibit,

@@ -1,6 +1,16 @@
-[target.aarch64-linux-android]
-linker = "%localAppData%/Android/Sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe"
+[env]
+# Solves bindgen / libclang compilation permanently
+LIBCLANG_PATH = "C:/Users/Lawton/AppData/Local/Android/Sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/windows-x86_64/bin"
 
-rustflags = [
-    "-C", "link-arg=--target=aarch64-linux-android24",
-]
+# Solves structural alignment sizing checks for 32-bit targets (moved to its correct home block)
+BINDGEN_EXTRA_CLANG_ARGS = "--target=armv7-linux-androideabi --sysroot=C:/Users/Lawton/AppData/Local/Android/Sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/windows-x86_64/sysroot"
+
+[target.armv7-linux-androideabi]
+# Forces the NDK compiler toolchain to handle both compilation and linking
+linker = "C:/Users/Lawton/AppData/Local/Android/Sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/windows-x86_64/bin/armv7a-linux-androideabi34-clang.cmd"
+ar = "C:/Users/Lawton/AppData/Local/Android/Sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.exe"
+
+[target.aarch64-linux-android]
+# Fixed legacy template path strings so Cargo parses 64-bit fallbacks seamlessly
+linker = "C:/Users/Lawton/AppData/Local/Android/Sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android34-clang.cmd"
+ar = "C:/Users/Lawton/AppData/Local/Android/Sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.exe"

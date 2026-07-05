@@ -53,6 +53,7 @@ export type Settings = {
   rdKey: string;
   tbKey: string;
   adKey: string;
+  auddKey?: string;
   pmKey: string;
   dlKey: string;
   region: string;
@@ -192,6 +193,8 @@ export type Settings = {
   mdblistKey: string;
   aiSearchKey: string;
   aiSearchModel: string;
+  songCardStyle?: "compact" | "cinematic";
+  songCardDetails?: boolean;
   playerD3d11Flip: boolean;
   mpvExtraOptions: string;
   mpvQuality: "balanced" | "performance" | "quality";

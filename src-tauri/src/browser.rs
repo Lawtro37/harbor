@@ -59,16 +59,25 @@ const STREMIO_CAPTURE_SCRIPT: &str = r#"
 #[tauri::command]
 pub async fn browser_open(app: AppHandle, url: String) -> Result<(), String> {
     let parsed = Url::parse(&url).map_err(|e| format!("parse url: {}", e))?;
-
+  #[cfg(not(target_os = "android"))]
+  {
     if let Some(existing) = app.get_webview_window(BROWSER_LABEL) {
-        let _ = existing.eval(&format!(
-            "window.location.href = {};",
-            serde_json::to_string(&url).unwrap_or_else(|_| "''".to_string())
-        ));
-        #[cfg(desktop)]
-        let _ = existing.set_focus();
-        return Ok(());
+      let _ = existing.eval(&format!(
+        "window.location.href = {};",
+        serde_json::to_string(&url).unwrap_or_else(|_| "''".to_string())
+      ));
+      #[cfg(desktop)]
+      let _ = existing.set_focus();
+      return Ok(());
     }
+  }
+
+  #[cfg(target_os = "android")]
+  {
+    // On Android we don't spawn additional webview windows; no-op for now.
+    eprintln!("[browser] android: open requested: {}", url);
+    return Ok(());
+  }
 
     let main = app
         .get_webview_window("main")
@@ -95,61 +104,55 @@ pub async fn browser_open(app: AppHandle, url: String) -> Result<(), String> {
     let init_script = CHROME_INIT_SCRIPT.to_string();
     let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
     app.run_on_main_thread(move || {
-        eprintln!(
-            "[browser] building {} at ({:.0}, {:.0}) size {:.0}x{:.0}",
-            BROWSER_LABEL, target_x, target_y, target_w, target_h
-        );
-        #[allow(unused_mut)] 
-        {
-          #[cfg(not(target_os = "android"))]
-          let builder =
-              WebviewWindowBuilder::new(&app_for_main, BROWSER_LABEL, WebviewUrl::External(parsed))
-                  .title("Harbor Browser")
-                  .inner_size(target_w, target_h)
-                  .position(target_x, target_y)
-                  .resizable(true)
-                  .decorations(true)
-                  .shadow(true)
-                  .focused(true)
-                  .initialization_script(&init_script);
-
-          #[cfg(target_os = "android")]
-          let builder =
-              WebviewWindowBuilder::new(&app_for_main, BROWSER_LABEL, WebviewUrl::External(parsed))
-                  .initialization_script(&init_script);
-        }
+      eprintln!(
+        "[browser] building {} at ({:.0}, {:.0}) size {:.0}x{:.0}",
+        BROWSER_LABEL, target_x, target_y, target_w, target_h
+      );
+      #[cfg(not(target_os = "android"))]
+      {
+        #[allow(unused_mut)]
+        let mut builder = WebviewWindowBuilder::new(&app_for_main, BROWSER_LABEL, WebviewUrl::External(parsed))
+          .title("Harbor Browser")
+          .inner_size(target_w, target_h)
+          .position(target_x, target_y)
+          .resizable(true)
+          .decorations(true)
+          .shadow(true)
+          .focused(true)
+          .initialization_script(&init_script);
 
         #[cfg(target_os = "linux")]
         {
-            let nav_app = app_for_main.clone();
-            builder = builder.on_navigation(move |url| {
-                let s = url.as_str();
-                if url.scheme() == "stremio" || s.contains("/manifest.json") {
-                    eprintln!("[browser] captured install link: {}", s);
-                    let _ = nav_app.emit("harbor://browser-stremio-capture", s.to_string());
-                    return false;
-                }
-                true
-            });
+          let nav_app = app_for_main.clone();
+          builder = builder.on_navigation(move |url| {
+            let s = url.as_str();
+            if url.scheme() == "stremio" || s.contains("/manifest.json") {
+              eprintln!("[browser] captured install link: {}", s);
+              let _ = nav_app.emit("harbor://browser-stremio-capture", s.to_string());
+              return false;
+            }
+            true
+          });
         }
 
         let result = builder.build();
         match result {
-            Ok(window) => {
-                eprintln!("[browser] window built, label={}", window.label());
-                let label_owned = BROWSER_LABEL.to_string();
-                window.on_window_event(move |event| {
-                    eprintln!("[browser/{}] event: {:?}", label_owned, event);
-                });
-                let _ = window.show();
-                let _ = window.set_focus();
-                let _ = tx.send(Ok(()));
-            }
-            Err(e) => {
-                eprintln!("[browser] BUILD FAILED: {}", e);
-                let _ = tx.send(Err(format!("build: {}", e)));
-            }
+          Ok(window) => {
+            eprintln!("[browser] window built, label={}", window.label());
+            let label_owned = BROWSER_LABEL.to_string();
+            window.on_window_event(move |event| {
+              eprintln!("[browser/{}] event: {:?}", label_owned, event);
+            });
+            let _ = window.show();
+            let _ = window.set_focus();
+            let _ = tx.send(Ok(()));
+          }
+          Err(e) => {
+            eprintln!("[browser] BUILD FAILED: {}", e);
+            let _ = tx.send(Err(format!("build: {}", e)));
+          }
         }
+      }
     })
     .map_err(|e| format!("run_on_main_thread: {}", e))?;
 
@@ -159,8 +162,11 @@ pub async fn browser_open(app: AppHandle, url: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn browser_close(app: AppHandle) -> Result<(), String> {
+  #[cfg(not(target_os = "android"))]
+  {
     if let Some(w) = app.get_webview_window(BROWSER_LABEL) {
-        let _ = w.close();
+      let _ = w.close();
     }
+  }
     Ok(())
 }
