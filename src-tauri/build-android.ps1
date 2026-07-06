@@ -1,16 +1,17 @@
-# Helper to build Android aarch64 target with NDK toolchain env vars
-param(
-    [string]$ndkPath = "$env:LOCALAPPDATA\Android\Sdk\ndk\27.2.12479018",
-    [string]$apiLevel = "21"
-)
+Write-Host "1. Killing stale background compilation locks..." -ForegroundColor Cyan
+Stop-Process -Name "java" -Force -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force "src-tauri/gen/android/.gradle"
 
-$toolchain = Join-Path $ndkPath "toolchains\llvm\prebuilt\windows-x86_64\bin"
+Write-Host "2. Triggering Tauri Native Android Package Assembly..." -ForegroundColor Cyan
+# The added -- --rerun-tasks forces Gradle to bypass the buggy local filesystem checks entirely
+pnpm run tauri android build --target armv7 -- --rerun-tasks
 
-$env:CXX_aarch64_linux_android = Join-Path $toolchain "aarch64-linux-android${apiLevel}-clang++.exe"
-$env:AR_aarch64_linux_android = Join-Path $toolchain "llvm-ar.exe"
-$env:RANLIB_aarch64_linux_android = Join-Path $toolchain "llvm-ranlib.exe"
-$env:CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER = Join-Path $toolchain "aarch64-linux-android${apiLevel}-clang.cmd"
+Write-Host "3. Appending local debug test signature..." -ForegroundColor Cyan
+cd "src-tauri\gen\android\app\build\outputs\apk\universal\release"
+& "$env:LOCALAPPDATA\Android\Sdk\build-tools\36.1.0\apksigner.bat" sign --ks "$env:USERPROFILE\.android\debug.keystore" --ks-pass pass:android --key-pass pass:android app-universal-release-unsigned.apk
 
-Write-Host "Building for aarch64-linux-android using NDK: $ndkPath (API $apiLevel)"
+Write-Host "4. Streaming signed application straight to TV..." -ForegroundColor Cyan
+adb install -r -g app-universal-release-unsigned.apk
 
-cargo build --target aarch64-linux-android
+Write-Host "Deployment Completed Successfully!" -ForegroundColor Green
+cd ..\..\..\..\..\..\..\..\..

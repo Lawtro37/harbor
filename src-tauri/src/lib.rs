@@ -452,7 +452,6 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(proxy_state)
         .manage(mpv_state)
@@ -462,7 +461,6 @@ pub fn run() {
         .manage(dvr_state)
         .manage(multiview_state)
         .manage(modal_overlay_state)
-        .manage(discord_rp::DiscordState::new())
         .manage(download::DownloadState::new());
 
     #[cfg(target_os = "macos")]
@@ -500,6 +498,7 @@ pub fn run() {
                     }
                 }
             }
+            #[cfg(desktop)]
             ensure_window_on_screen(&app.handle());
             #[cfg(target_os = "macos")]
             {
@@ -518,6 +517,7 @@ pub fn run() {
             }
             cast_server::ensure_started_on_setup(&app.handle());
             torrent_engine::ensure_started_on_setup(&app.handle());
+            #[cfg(desktop)]
             {
                 let handle = app.handle().clone();
                 std::thread::spawn(move || discord_rp::run_loop(handle));
@@ -600,133 +600,156 @@ pub fn run() {
         }
     });
 
-    #[cfg(target_os = "android")]
-    let app_builder = app_builder;
+    #[cfg(desktop)]
+    {
+        app_builder
+            .invoke_handler(tauri::generate_handler![
+                harbor_flush_done,
+                close_aux_windows,
+                power::power_inhibit,
+                harbor_set_webview_memory_low,
+                harbor_set_webview_visible,
+                harbor_try_suspend_webview,
+                harbor_resume_webview,
+                save_text_file,
+                cast_server::stop_stremio_sidecar,
+                cast_server::cast_server_stop,
+                web_server::web_serve_start,
+                web_server::web_serve_stop,
+                web_server::web_serve_status,
+                anime4k::anime4k_download,
+                anime4k::anime4k_dir,
+                svp::svp_status,
+                svp::svp_launch,
+                svp::svp_apply,
+                settings_store::settings_read,
+                settings_store::settings_write,
+                proc_mem::harbor_process_memory,
+                trailer::fetch_trailer,
+                download::download_start,
+                download::download_cancel,
+                stream_proxy::proxy_register,
+                stream_proxy::proxy_unregister,
+                stream_proxy::proxy_gc_idle,
+                cf_relay::cf_list_accounts,
+                cf_relay::cf_deploy_relay,
+                cf_relay::cf_delete_relay,
+                cf_relay::cf_relay_status,
+                mpv::mpv_probe,
+                mpv::mpv_start,
+                mpv::mpv_command,
+                mpv::mpv_set_property,
+                mpv::mpv_get_property,
+                mpv::mpv_set_geometry,
+                mpv::mpv_force_below,
+                mpv::mpv_export_log,
+                mpv::mpv_set_hdr_stage,
+                mpv::display_hdr_active,
+                webview_helpers::webview_reapply_transparency,
+                mpv::mpv_on_pip_changed,
+                mpv::mpv_screenshot_data_url,
+                mpv::mpv_save_screenshot,
+                mpv::mpv_gif_start,
+                mpv::mpv_gif_stop,
+                mpv::mpv_gif_abort,
+                mpv::mpv_clip_save,
+                modal_overlay::modal_overlay_open,
+                modal_overlay::modal_overlay_close,
+                modal_overlay::modal_overlay_emit_state,
+                modal_overlay::modal_overlay_emit_action,
+                modal_overlay::modal_overlay_sync,
+                modal_overlay::modal_overlay_get_pending,
+                hdr_overlay::hdr_overlay_open,
+                hdr_overlay::hdr_overlay_close,
+                hdr_overlay::hdr_overlay_sync,
+                hdr_overlay::hdr_overlay_emit_props,
+                hdr_overlay::hdr_overlay_emit_action,
+                mpv::mpv_sub_add,
+                mpv::sub_download,
+                mpv::mpv_stop,
+                pip::pip_open,
+                pip::pip_get_session,
+                pip::pip_close,
+                pip::pip_publish_state,
+                pip::window_pip_enter,
+                pip::window_pip_exit,
+                fullscreen::window_fullscreen_enter,
+                fullscreen::window_fullscreen_exit,
+                browser::browser_open,
+                browser::browser_close,
+                thumbs::thumbs_set_url,
+                thumbs::thumbs_spawn_eager,
+                thumbs::thumbs_get,
+                thumbs::thumbs_stop,
+                dvr::dvr_start,
+                dvr::dvr_stop,
+                dvr::dvr_list,
+                dvr::dvr_default_dir,
+                dvr::dvr_reveal,
+                multiview::multiview_open,
+                multiview::multiview_prespawn,
+                multiview::multiview_geometry,
+                multiview::multiview_audio_focus,
+                multiview::multiview_close,
+                multiview::multiview_visibility,
+                multiview::multiview_stop_all,
+                http_fetch::harbor_fetch,
+                discord_rp::discord_set_presence,
+                discord_rp::discord_clear,
+                discord_rp::discord_set_enabled,
+                cast::cast_discover,
+                dlna::lan_ip,
+                cast::cast_load,
+                cast::cast_play,
+                cast::cast_pause,
+                cast::cast_seek,
+                cast::cast_stop,
+                cast::cast_status,
+                cast_server::cast_server_status,
+                cast_server::cast_server_restart,
+                torrent_engine::torrent_engine_status,
+                torrent_engine::torrent_engine_add,
+                torrent_engine::torrent_engine_select,
+                torrent_engine::torrent_engine_stats,
+                torrent_engine::torrent_engine_remove,
+                torrent_engine::torrent_engine_selftest,
+                torrent_engine::torrent_engine_restart,
+                torrent_engine::torrent_engine_hard_reset,
+                torrent_engine::torrent_engine_set_options,
+                transcode::cast_ffmpeg_present,
+                streams::streams_run_pipeline,
+                streams::streams_parse,
+                streams::streams_core_version,
+                local_lib::harbor_scan_folder,
+                tray::tray_set_prefs,
+                stremio_auth::stremio_auth_start,
+                deeplink_set_stremio,
+                deeplink_is_stremio_registered,
+            ])
+            .run(tauri::generate_context!())
+            .expect("error while running tauri application");
+    }
 
-    app_builder.invoke_handler(tauri::generate_handler![
-            harbor_flush_done,
-            close_aux_windows,
-            power::power_inhibit,
-            harbor_set_webview_memory_low,
-            harbor_set_webview_visible,
-            harbor_try_suspend_webview,
-            harbor_resume_webview,
-            save_text_file,
-            cast_server::stop_stremio_sidecar,
-            cast_server::cast_server_stop,
-            web_server::web_serve_start,
-            web_server::web_serve_stop,
-            web_server::web_serve_status,
-            anime4k::anime4k_download,
-            anime4k::anime4k_dir,
-            svp::svp_status,
-            svp::svp_launch,
-            svp::svp_apply,
-            settings_store::settings_read,
-            settings_store::settings_write,
-            proc_mem::harbor_process_memory,
-            trailer::fetch_trailer,
-            download::download_start,
-            download::download_cancel,
-            stream_proxy::proxy_register,
-            stream_proxy::proxy_unregister,
-            stream_proxy::proxy_gc_idle,
-            cf_relay::cf_list_accounts,
-            cf_relay::cf_deploy_relay,
-            cf_relay::cf_delete_relay,
-            cf_relay::cf_relay_status,
-            mpv::mpv_probe,
-            mpv::mpv_start,
-            mpv::mpv_command,
-            mpv::mpv_set_property,
-            mpv::mpv_get_property,
-            mpv::mpv_set_geometry,
-            mpv::mpv_force_below,
-            mpv::mpv_export_log,
-            mpv::mpv_set_hdr_stage,
-            mpv::display_hdr_active,
-            webview_helpers::webview_reapply_transparency,
-            mpv::mpv_on_pip_changed,
-            mpv::mpv_screenshot_data_url,
-            mpv::mpv_save_screenshot,
-            mpv::mpv_gif_start,
-            mpv::mpv_gif_stop,
-            mpv::mpv_gif_abort,
-            mpv::mpv_clip_save,
-            modal_overlay::modal_overlay_open,
-            modal_overlay::modal_overlay_close,
-            modal_overlay::modal_overlay_emit_state,
-            modal_overlay::modal_overlay_emit_action,
-            modal_overlay::modal_overlay_sync,
-            modal_overlay::modal_overlay_get_pending,
-            hdr_overlay::hdr_overlay_open,
-            hdr_overlay::hdr_overlay_close,
-            hdr_overlay::hdr_overlay_sync,
-            hdr_overlay::hdr_overlay_emit_props,
-            hdr_overlay::hdr_overlay_emit_action,
-            mpv::mpv_sub_add,
-            mpv::sub_download,
-            mpv::mpv_stop,
-            pip::pip_open,
-            pip::pip_get_session,
-            pip::pip_close,
-            pip::pip_publish_state,
-            pip::window_pip_enter,
-            pip::window_pip_exit,
-            fullscreen::window_fullscreen_enter,
-            fullscreen::window_fullscreen_exit,
-            browser::browser_open,
-            browser::browser_close,
-            thumbs::thumbs_set_url,
-            thumbs::thumbs_spawn_eager,
-            thumbs::thumbs_get,
-            thumbs::thumbs_stop,
-            dvr::dvr_start,
-            dvr::dvr_stop,
-            dvr::dvr_list,
-            dvr::dvr_default_dir,
-            dvr::dvr_reveal,
-            multiview::multiview_open,
-            multiview::multiview_prespawn,
-            multiview::multiview_geometry,
-            multiview::multiview_audio_focus,
-            multiview::multiview_close,
-            multiview::multiview_visibility,
-            multiview::multiview_stop_all,
-            http_fetch::harbor_fetch,
-            discord_rp::discord_set_presence,
-            discord_rp::discord_clear,
-            discord_rp::discord_set_enabled,
-            cast::cast_discover,
-            dlna::lan_ip,
-            cast::cast_load,
-            cast::cast_play,
-            cast::cast_pause,
-            cast::cast_seek,
-            cast::cast_stop,
-            cast::cast_status,
-            cast_server::cast_server_status,
-            cast_server::cast_server_restart,
-            torrent_engine::torrent_engine_status,
-            torrent_engine::torrent_engine_add,
-            torrent_engine::torrent_engine_select,
-            torrent_engine::torrent_engine_stats,
-            torrent_engine::torrent_engine_remove,
-            torrent_engine::torrent_engine_selftest,
-            torrent_engine::torrent_engine_restart,
-            torrent_engine::torrent_engine_hard_reset,
-            torrent_engine::torrent_engine_set_options,
-            transcode::cast_ffmpeg_present,
-            streams::streams_run_pipeline,
-            streams::streams_parse,
-            streams::streams_core_version,
-            local_lib::harbor_scan_folder,
-            #[cfg(desktop)]
-            tray::tray_set_prefs,
-            stremio_auth::stremio_auth_start,
-            deeplink_set_stremio,
-            deeplink_is_stremio_registered,
-        ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    #[cfg(mobile)]
+    {
+        app_builder
+            .invoke_handler(tauri::generate_handler![
+                harbor_flush_done,
+                harbor_set_webview_memory_low,
+                harbor_set_webview_visible,
+                harbor_try_suspend_webview,
+                harbor_resume_webview,
+                save_text_file,
+                settings_store::settings_read,
+                settings_store::settings_write,
+                trailer::fetch_trailer,
+                download::download_start,
+                download::download_cancel,
+                http_fetch::harbor_fetch,
+                // just strip it down to the bare minimum for now.
+            ])
+            .run(tauri::generate_context!())
+            .expect("error while running tauri application");
+    }
+
 }

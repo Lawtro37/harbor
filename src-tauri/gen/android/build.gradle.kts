@@ -20,3 +20,12 @@ tasks.register("clean").configure {
     delete("build")
 }
 
+tasks.register("assembleUniversalRelease") {
+    dependsOn(":app:assembleRelease")
+}
+
+tasks.whenTaskAdded {
+    if (name.startsWith("merge") && name.endsWith("JniLibFolders")) {
+        enabled = false
+    }
+}

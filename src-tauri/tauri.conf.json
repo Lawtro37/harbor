@@ -43,7 +43,8 @@
     "targets": ["app", "dmg", "deb", "rpm", "appimage", "nsis"],
     "externalBin": ["binaries/yt-dlp", "binaries/ffmpeg", "binaries/ffprobe"],
     "resources": {
-      "fonts/*": "fonts/"
+      "fonts/*": "fonts/",
+      "android/armeabi-v7a/libmpv.so": "android/armeabi-v7a/libmpv.so"
     },
     "licenseFile": "installer/eula.txt",
     "icon": [

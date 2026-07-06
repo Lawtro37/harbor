@@ -3,6 +3,7 @@ name = "harbor"
 version = "0.9.19"
 description = "A Stremio client built for adventure"
 edition = "2021"
+target = "aarch64-linux-android"
 
 [lib]
 name = "harbor_lib"
@@ -64,3 +65,9 @@ objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSView", "NSOpenGL",
 objc2-web-kit = { version = "0.3", features = ["WKWebView"] }
 core-foundation = "0.10"
 core-video = "0.4"
+
+[profile.release]
+opt-level = 1       # Redirection block: 1 optimizes for speed, 3 optimizes for small binary footprints
+lto = false         # Disable Link-Time Optimization to prevent slow global cross-linking steps
+codegen-units = 256 # Split the crate compilation across as many CPU threads as possible concurrently
+panic = "unwind"     # Strip down unwinding metadata to make native linking tasks significantly faster
