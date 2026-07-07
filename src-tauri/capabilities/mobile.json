@@ -1,0 +1,37 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile",
+  "description": "Mobile app capabilities",
+  "platforms": [
+    "android",
+    "iOS"
+  ],
+  "windows": [
+    "main",
+    "harbor-browser",
+    "harbor-pip",
+    "harbor-modal-overlay"
+  ],
+  "permissions": [
+    "core:default",
+
+    "core:window:allow-close",
+    "core:window:allow-start-dragging",
+    "core:webview:allow-set-webview-zoom",
+
+    "opener:allow-open-url",
+
+    "http:default",
+
+    "dialog:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "dialog:allow-confirm",
+    "dialog:allow-ask",
+    "dialog:allow-message",
+
+    "fs:default",
+
+    "process:default"
+  ]
+}

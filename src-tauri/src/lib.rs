@@ -1,41 +1,70 @@
-mod anime4k;
 mod browser;
-mod cast;
-mod cast_hls;
-mod cast_server;
-mod cast_subs;
-mod cf_relay;
-mod discord_rp;
-mod dlna;
-mod download;
-mod dvr;
-mod fonts;
-mod fullscreen;
-mod hdr_overlay;
 mod http_fetch;
-mod local_lib;
-mod modal_overlay;
-mod mpv;
-mod multiview;
-mod proc_mem;
-mod roku;
-#[cfg(target_os = "macos")]
-mod mpv_render_mac;
-#[cfg(target_os = "linux")]
-mod mpv_render_linux;
-mod pip;
-#[cfg(target_os = "macos")]
-mod pip_mac;
-mod power;
-mod airplay;
 mod settings_store;
-mod stream_proxy;
 mod streams;
+mod webview_helpers;
 mod stremio_auth;
+mod download;
+
+#[cfg(desktop)]
+mod anime4k;
+#[cfg(desktop)]
+mod cast;
+#[cfg(desktop)]
+mod cast_hls;
+#[cfg(desktop)]
+mod cast_server;
+#[cfg(desktop)]
+mod cast_subs;
+#[cfg(desktop)]
+mod cf_relay;
+#[cfg(desktop)]
+mod discord_rp;
+#[cfg(desktop)]
+mod dlna;
+#[cfg(desktop)]
+mod dvr;
+#[cfg(desktop)]
+mod fonts;
+#[cfg(desktop)]
+mod fullscreen;
+#[cfg(desktop)]
+mod hdr_overlay;
+#[cfg(desktop)]
+mod local_lib;
+#[cfg(desktop)]
+mod modal_overlay;
+#[cfg(desktop)]
+mod mpv;
+#[cfg(desktop)]
+mod multiview;
+#[cfg(desktop)]
+mod proc_mem;
+#[cfg(desktop)]
+mod roku;
+#[cfg(all(desktop, target_os = "macos"))]
+mod mpv_render_mac;
+#[cfg(all(desktop, target_os = "linux"))]
+mod mpv_render_linux;
+#[cfg(desktop)]
+mod pip;
+#[cfg(all(desktop, target_os = "macos"))]
+mod pip_mac;
+#[cfg(desktop)]
+mod power;
+#[cfg(desktop)]
+mod airplay;
+#[cfg(desktop)]
+mod stream_proxy;
+#[cfg(desktop)]
 mod svp;
+#[cfg(desktop)]
 mod thumbs;
+#[cfg(desktop)]
 mod torrent_engine;
+#[cfg(desktop)]
 mod trailer;
+#[cfg(desktop)]
 mod transcode;
 #[cfg(desktop)]
 mod tray;
@@ -86,13 +115,16 @@ mod tray {
 
     pub fn show_main(_: &AppHandle) {}
 }
+#[cfg(desktop)]
 mod web_server;
-mod webview_helpers;
 
 pub(crate) fn shutdown_services(app: &tauri::AppHandle) {
-    cast_server::stop();
-    torrent_engine::stop();
-    discord_rp::shutdown(app);
+    #[cfg(desktop)]
+    {
+        cast_server::stop();
+        torrent_engine::stop();
+        discord_rp::shutdown(app);
+    }
 }
 
 pub static CLOSE_FLUSH_DONE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
@@ -118,6 +150,7 @@ fn close_aux_windows(app: tauri::AppHandle) {
     // Android: nothing to do
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 async fn deeplink_set_stremio(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
     use tauri_plugin_deep_link::DeepLinkExt;
@@ -131,6 +164,7 @@ async fn deeplink_set_stremio(app: tauri::AppHandle, enabled: bool) -> Result<()
     Ok(())
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 async fn deeplink_is_stremio_registered(app: tauri::AppHandle) -> Result<bool, String> {
     use tauri_plugin_deep_link::DeepLinkExt;
@@ -387,21 +421,29 @@ fn ensure_window_on_screen(_: &tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    std::env::set_var("RUST_BACKTRACE", "1");
+    std::env::set_var("RUST_LIB_BACKTRACE", "1");
+    println!("Harbor lib run() starting...");
     #[cfg(target_os = "linux")]
     mpv_render_linux::enforce_nvidia_x11();
     let _ = rustls::crypto::ring::default_provider().install_default();
-    trailer::sweep_cache();
-    let proxy_state = tauri::async_runtime::block_on(stream_proxy::ProxyState::start())
-        .unwrap_or_else(|e| {
-            eprintln!("[stream-proxy] failed to start: {}", e);
-            stream_proxy::ProxyState::placeholder()
-        });
-    let mpv_state = mpv::MpvState::new();
-    let pip_state = pip::PipState::new();
-    let fullscreen_state = fullscreen::FullscreenState::new();
-    let thumbs_state = thumbs::ThumbsState::new();
-    let dvr_state = dvr::DvrState::new();
+    #[cfg(desktop)]
+    {
+        trailer::sweep_cache();
+        let proxy_state = tauri::async_runtime::block_on(stream_proxy::ProxyState::start())
+            .unwrap_or_else(|e| {
+                eprintln!("[stream-proxy] failed to start: {}", e);
+                stream_proxy::ProxyState::placeholder()
+            });
+        let mpv_state = mpv::MpvState::new();
+        let pip_state = pip::PipState::new();
+        let fullscreen_state = fullscreen::FullscreenState::new();
+        let thumbs_state = thumbs::ThumbsState::new();
+        let dvr_state = dvr::DvrState::new();
+    }
+    #[cfg(desktop)]
     let multiview_state = multiview::MultiviewState::new();
+    #[cfg(desktop)]
     let modal_overlay_state = modal_overlay::ModalOverlayState::new();
     #[cfg(desktop)]
     let app_builder = tauri::Builder::default()
@@ -451,16 +493,7 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_process::init())
-        .manage(proxy_state)
-        .manage(mpv_state)
-        .manage(pip_state)
-        .manage(fullscreen_state)
-        .manage(thumbs_state)
-        .manage(dvr_state)
-        .manage(multiview_state)
-        .manage(modal_overlay_state)
         .manage(download::DownloadState::new());
 
     #[cfg(target_os = "macos")]
@@ -515,7 +548,9 @@ pub fn run() {
                     }
                 }
             }
+            #[cfg(desktop)]
             cast_server::ensure_started_on_setup(&app.handle());
+            #[cfg(desktop)]
             torrent_engine::ensure_started_on_setup(&app.handle());
             #[cfg(desktop)]
             {
@@ -742,7 +777,6 @@ pub fn run() {
                 save_text_file,
                 settings_store::settings_read,
                 settings_store::settings_write,
-                trailer::fetch_trailer,
                 download::download_start,
                 download::download_cancel,
                 http_fetch::harbor_fetch,

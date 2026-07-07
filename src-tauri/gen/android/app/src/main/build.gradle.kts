@@ -7,6 +7,12 @@ val tauriProperties = Properties().apply {
     }
 }
 
+tasks.withType<com.android.build.gradle.tasks.PackageAndroidArtifact> {
+    doFirst {
+        environment("RUST_BACKTRACE", "full")
+    }
+}
+
 android {
     compileSdk = 36
     namespace = "app.harbor"
@@ -42,14 +48,12 @@ android {
         buildConfig = true
     }
 
-    // ✅ ONLY JNI SOURCE
     sourceSets {
         getByName("main") {
             jniLibs.srcDirs("src/main/jniLibs")
         }
     }
 
-    // 🔥 CRITICAL FIX (this is what prevents your merge crash)
     packaging {
         jniLibs {
             useLegacyPackaging = true

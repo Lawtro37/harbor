@@ -73,3 +73,11 @@ requestAnimationFrame(() => {
   boot.classList.add("gone");
   setTimeout(() => boot.remove(), 260);
 });
+
+// error handling
+window.addEventListener("error", (e) => {
+  console.error("[harbor] uncaught error:", e.error);
+});
+window.addEventListener("unhandledrejection", (e) => {
+  console.error("[harbor] unhandled promise rejection:", e.reason);
+});
