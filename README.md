@@ -8,7 +8,7 @@
 </picture>
 
 ### A Stremio Client Built for Adventure!
-
+##### Android Port
 
 Offering things like a native player, a stream ranking engine, Wikidata, watch parties, PiP, DVR, Live TV, anime, a theme engine, and much more. Check out our website at www.harbor.site for an immersive experience. 
 
@@ -25,6 +25,20 @@ Offering things like a native player, a stream ranking engine, Wikidata, watch p
 
 [Why Harbor](#why-harbor) &middot; [Features](#feature-tour) &middot; [Install](#install) &middot; [Configuration](#configuration) &middot; [Architecture](#architecture) &middot; [FAQ](#faq) &middot; [Contributing](#contributing)
 
+</div>
+
+<div>
+
+#### tasks for android port
+- [x] Compile To APK
+- [x] Launch to UI
+- [ ] Support TV remote and touch input
+- [ ] Support opening and dispalying video streams
+- [ ] Polish
+
+more to tasks and sub-tasks be added.
+
+### This Android port is in HEAVY development
 </div>
 
 <br/>
