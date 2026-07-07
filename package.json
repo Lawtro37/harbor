@@ -14,7 +14,7 @@
     "setup:ffmpeg": "node scripts/fetch-ffmpeg.mjs",
     "setup:fonts": "node scripts/fetch-fonts.mjs",
     "tauri:build:android": "powershell -ExecutionPolicy Bypass -File src-tauri/build-android.ps1",
-    "build:android": "tsc -b && vite build && powershell -ExecutionPolicy Bypass -File src-tauri/build-android.ps1"
+    "build:android": "tauri android build --target armv7 --debug"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
