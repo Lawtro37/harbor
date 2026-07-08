@@ -1,0 +1,61 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Harbor",
+  "version": "0.9.19",
+  "identifier": "app.harbor",
+
+  "build": {
+    "beforeBuildCommand": "npm run build:android",
+    "frontendDist": "../dist"
+  },
+
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Harbor",
+        "width": 1280,
+        "height": 800,
+        "decorations": false,
+        "resizable": true,
+        "backgroundColor": [0, 0, 0, 255],
+        "additionalBrowserArgs": "--disk-cache-size=104857600 --media-cache-size=52428800 --autoplay-policy=no-user-gesture-required"
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      }
+    }
+  },
+
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": false,
+    "resources": {
+      "fonts/*": "fonts/",
+      "android/armeabi-v7a/libmpv.so": "android/armeabi-v7a/libmpv.so"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ]
+  },
+
+  "plugins": {
+    "deep-link": {
+      "mobile": [
+        {
+          "schemes": [
+            "harbor",
+            "stremio"
+          ]
+        }
+      ]
+    }
+  }
+}

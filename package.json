@@ -7,14 +7,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:android": "tsc -b && vite build --mode android",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:build:linux-system": "tauri build --config src-tauri/tauri.linux-system.conf.json",
     "setup:libmpv": "node scripts/fetch-libmpv.mjs",
     "setup:ffmpeg": "node scripts/fetch-ffmpeg.mjs",
     "setup:fonts": "node scripts/fetch-fonts.mjs",
-    "tauri:build:android": "powershell -ExecutionPolicy Bypass -File src-tauri/build-android.ps1",
-    "build:android": "tauri android build --target armv7 --debug"
+    "tauri:build:android": "tauri android build --target armv7 --debug --config src-tauri/tauri.android.conf.json"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
@@ -42,6 +42,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4",
     "@tauri-apps/cli": "^2",
+    "@types/node": "^26.1.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",

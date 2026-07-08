@@ -19,7 +19,7 @@ import { exitWindowFullscreenOnPlayerClose, toggleWindowFullscreen } from "@/lib
 import { flushCloudSync } from "@/views/player/hooks/use-stremio-sync";
 import { setNativeMemoryActive } from "@/lib/native-memory";
 import { useOverlayPinned } from "@/lib/overlay-pin";
-import { isAndroidTV, isMobileDevice, isWeb } from "@/lib/platform";
+import { isMobileDevice, isWeb } from "@/lib/platform";
 import { activeLayout } from "@/lib/theme";
 import { useThemePreview } from "@/lib/theme-preview";
 import { DevErrorTrigger } from "@/components/dev-error-trigger";
@@ -468,7 +468,6 @@ function focusClosestInDirection(direction: "up" | "down" | "left" | "right") {
 function Shell() {
   const { topKind, service, meta, metaLiveContext, metaEpisodeHint, episodeDetail, personId, collectionId, filter, grid, awardType, animeAwardSource, picker, player, setView, canGoBack, goBack, canGoForward, goForward, openMeta, stackKinds, chromeHidden } = useView();
   const { settings, update } = useSettings();
-  const tvRemote = isAndroidTV();
   const uiScaleRef = useRef(settings.uiScale);
   const { activeProfile } = useProfiles();
   const kid = activeProfile?.kid ?? null;
@@ -525,7 +524,6 @@ function Shell() {
   }, [canGoBack, goBack, canGoForward, goForward]);
 
   useEffect(() => {
-    if (!tvRemote) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Backspace" || e.key === "BrowserBack" || e.key === "Escape") {
         e.preventDefault();
@@ -556,7 +554,7 @@ function Shell() {
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [tvRemote, canGoBack, goBack]);
+  }, [canGoBack, goBack]);
 
   useEffect(() => {
     uiScaleRef.current = settings.uiScale;
@@ -770,9 +768,7 @@ function Shell() {
     const root = document.documentElement;
     if (playerActive || pickerTop || immersive || settingsTop || chromeHidden) root.dataset.chromeHidden = "true";
     else delete root.dataset.chromeHidden;
-    if (tvRemote) root.dataset.androidTv = "true";
-    else delete root.dataset.androidTv;
-  }, [playerActive, pickerTop, immersive, settingsTop, chromeHidden, tvRemote]);
+  }, [playerActive, pickerTop, immersive, settingsTop, chromeHidden]);
 
   useEffect(() => {
     document.querySelectorAll("[data-harbor-nav]").forEach((el) => {
@@ -818,7 +814,7 @@ function Shell() {
   const downloadsAlive = useIdleEvict(downloadsTop);
 
   return (
-    <div data-kids={kidsTop || kid ? "on" : undefined} className="relative flex h-full">
+    <div data-kids={kidsTop || kid ? "on" : undefined} className={`relative flex h-full`}>
       {!settingsTop && !playerActive && !liveTop && !pickerTop && layout === "sidebar" && <Sidebar />}
       {!settingsTop && !playerActive && !liveTop && !pickerTop && layout === "dracula" && <DraculaSidebar />}
       {!settingsTop && !playerActive && !liveTop && !pickerTop && layout === "nord" && <NordSidebar />}

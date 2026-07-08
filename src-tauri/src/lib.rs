@@ -561,6 +561,15 @@ pub fn run() {
             if let Err(e) = tray::build(&app.handle()) {
                 eprintln!("[harbor::tray] build failed: {:?}", e);
             }
+            #[cfg(mobile)]
+            {
+                use tauri::Manager;
+                if let Some(window) = app.get_webview_window("main") {
+                    if let Err(e) = window.set_zoom(0.75) {
+                        eprintln!("[harbor] failed to set zoom: {}", e);
+                    }
+                }
+            }
             Ok(())
         });
         
